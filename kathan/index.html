@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sort The Trash | Tim DAKARA - Finalis LINDA 2026</title>
+    <!-- Framework & Fonts -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-bright: #f0fdf4;
+            --forest: #16a34a;
+            --ocean: #0284c7;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-dark: #064e3b;
+            --glass-card: rgba(255, 255, 255, 0.92);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background-color: var(--bg-bright); color: var(--text-dark); overflow: hidden; }
+
+        /* --- BACKGROUND SAMPAH KECIL --- */
+        #interactive-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+        .small-trash { position: absolute; opacity: 0.25; transition: transform 0.2s ease-out; }
+
+        /* --- HORIZONTAL SYSTEM --- */
+        .horizontal-container {
+            display: flex; width: 100vw; height: 100vh;
+            overflow-x: auto; scroll-snap-type: x mandatory;
+            scroll-behavior: smooth; scrollbar-width: none;
+            position: relative; z-index: 2;
+        }
+        .horizontal-container::-webkit-scrollbar { display: none; }
+
+        .slide-section {
+            min-width: 100vw; height: 100vh; scroll-snap-align: start;
+            display: flex; align-items: center; justify-content: flex-start;
+            padding: 0 5%; position: relative;
+        }
+
+        /* --- WRAPPER HIASAN --- */
+        .ornament-wrapper {
+            position: absolute; right: 5%; top: 50%;
+            transform: translateY(-50%) translateX(100px);
+            opacity: 0; z-index: -1;
+            transition: all 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+            pointer-events: none;
+        }
+        .active .ornament-wrapper { opacity: 0.45; transform: translateY(-50%) translateX(0); }
+        .hero-icon { font-size: 35rem; display: block; }
+
+        /* --- ANIMASI KHUSUS ICON --- */
+        .ani-strike { transform-origin: bottom right; color: #78350f; }
+        .active .ani-strike { 
+            animation: strike 1.5s ease-in-out forwards; 
+            animation-delay: 0.8s;
+        }
+        @keyframes strike {
+            0% { transform: rotate(0deg); }
+            20% { transform: rotate(-45deg); }
+            35% { transform: rotate(15deg); }
+            50% { transform: rotate(-10deg); }
+            65% { transform: rotate(5deg); }
+            80% { transform: rotate(0deg); }
+            100% { transform: rotate(0deg); }
+        }
+        .ani-rotate { animation: rotate 20s infinite linear; }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .ani-pulse { animation: pulse 2s infinite ease-in-out; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+        /* --- CONTENT CARD (LEBIH MENARIK) --- */
+        .glass-card {
+            background: var(--glass-card);
+            backdrop-filter: blur(30px);
+            border-radius: 40px 80px 40px 80px; /* Bentuk asimetris sedikit daun */
+            padding: 4rem;
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            position: relative;
+            box-shadow: 
+                0 25px 50px -12px rgba(22, 163, 74, 0.2),
+                inset 0 0 20px rgba(255, 255, 255, 0.5);
+            max-width: 1050px; 
+            width: 100%;
+            opacity: 0; 
+            transform: scale(0.9) translateY(30px);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow: hidden;
+        }
+        
+        /* Aksen Daun di Pojok Kartu */
+        .glass-card::before {
+            content: '\f06c'; font-family: 'Font Awesome 6 Free'; font-weight: 900;
+            position: absolute; top: 20px; right: 30px; font-size: 3rem; color: var(--forest); opacity: 0.1;
+        }
+
+        .active .glass-card { opacity: 1; transform: scale(1) translateY(0); }
+
+        /* --- REVEAL TEKS --- */
+        .reveal { opacity: 0; transform: translateY(20px); transition: 0.6s ease-out; }
+        .active .reveal { opacity: 1; transform: translateY(0); }
+        
+        /* List Item Bergaya Eco-Sticker */
+        .list-item {
+            background: linear-gradient(135deg, #ffffff 0%, #f9fdf9 100%);
+            border-radius: 12px;
+            padding: 16px 24px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            box-shadow: 4px 4px 0px rgba(22, 163, 74, 0.1);
+            font-size: 1.3rem;
+            font-weight: 600;
+            opacity: 0;
+            transform: translateY(15px);
+            transition: all 0.4s ease-out;
+            border: 1px solid rgba(22, 163, 74, 0.05);
+        }
+        .list-item:hover {
+            transform: scale(1.02) translateX(10px);
+            box-shadow: 6px 6px 0px rgba(22, 163, 74, 0.2);
+        }
+
+        .active .list-item { opacity: 1; transform: translateY(0); }
+        .active .list-item:nth-child(1) { transition-delay: 0.5s; }
+        .active .list-item:nth-child(2) { transition-delay: 0.6s; }
+        .active .list-item:nth-child(3) { transition-delay: 0.7s; }
+        .active .list-item:nth-child(4) { transition-delay: 0.8s; }
+        .active .list-item:nth-child(5) { transition-delay: 0.9s; }
+        .active .list-item:nth-child(6) { transition-delay: 1s; }
+
+        h1 { font-size: 4rem; font-weight: 800; line-height: 1.1; margin-bottom: 1rem; }
+        h2 { 
+            font-size: 2.8rem; font-weight: 800; 
+            color: var(--forest); margin-bottom: 2rem;
+            display: flex; align-items: center;
+        }
+        h2 i { margin-right: 20px; font-size: 2.5rem; }
+
+        .badge-eco {
+            background: linear-gradient(45deg, var(--forest), #22c55e);
+            color: white; padding: 0.7rem 1.8rem;
+            border-radius: 50px; font-weight: 800; font-size: 1rem;
+            display: inline-block; margin-bottom: 2rem;
+            box-shadow: 0 4px 15px rgba(22, 163, 74, 0.3);
+        }
+
+        /* --- NAV --- */
+        .nav-dots { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); display: flex; gap: 15px; z-index: 1000; }
+        .dot { width: 15px; height: 15px; border-radius: 50%; background: #cbd5e1; cursor: pointer; transition: 0.3s; }
+        .dot.active { background: var(--forest); width: 45px; border-radius: 12px; box-shadow: 0 0 10px rgba(22, 163, 74, 0.4); }
+        
+        .side-btn { 
+            position: fixed; top: 50%; transform: translateY(-50%); 
+            background: white; border: none; width: 65px; height: 65px; 
+            border-radius: 50%; box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+            z-index: 1000; cursor: pointer; font-size: 1.5rem; transition: 0.3s;
+            color: var(--forest);
+        }
+        .side-btn:hover { background: var(--forest); color: white; transform: translateY(-50%) scale(1.1); }
+    </style>
+</head>
+<body>
+
+    <div id="interactive-bg"></div>
+    <div class="nav-dots" id="dotNav"></div>
+    <button class="side-btn" style="left: 25px;" onclick="slide(-1)"><i class="fas fa-chevron-left"></i></button>
+    <button class="side-btn" style="right: 25px;" onclick="slide(1)"><i class="fas fa-chevron-right"></i></button>
+
+    <div class="horizontal-container" id="slider">
+        
+        <!-- SLIDE 1: JUDUL -->
+        <section class="slide-section active">
+            <div class="ornament-wrapper">
+                <i class="fas fa-recycle hero-icon ani-rotate" style="color: var(--forest);"></i>
+            </div>
+            <div class="glass-card">
+                <span class="badge-eco reveal">★ FINALIS LINDA 2026 ★</span>
+                <h1 class="reveal">GAME EDUKASI <br><span style="color: var(--forest);">"SORT THE TRASH"</span></h1>
+                <div class="mt-4 reveal">
+                    <h2 class="mb-0 text-muted" style="font-size: 2.2rem; color: #666 !important;">Tim DAKARA</h2>
+                    <h3 class="text-forest" style="font-size: 1.8rem; font-weight: 700;">SMAN 2 Padalarang</h3>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 2: DASAR HUKUM -->
+        <section class="slide-section">
+            <div class="ornament-wrapper">
+                <i class="fas fa-gavel hero-icon ani-strike"></i>
+            </div>
+            <div class="glass-card">
+                <h2 class="reveal"><i class="fas fa-balance-scale"></i>Dasar Hukum</h2>
+                <div class="row g-2">
+                    <div class="col-12">
+                        <div class="list-item">1. SK Bupati Bandung Barat No. 100.3.3.2/Kep.681/2025</div>
+                        <div class="list-item">2. SK Kepala SMAN 2 Padalarang No 805/1542.1/2025</div>
+                        <div class="list-item">3. UU No. 18 Tahun 2008 tentang Pengelolaan Sampah</div>
+                        <div class="list-item">4. PP No. 81 Thn 2012 (Sampah Rumah Tangga)</div>
+                        <div class="list-item">5. PP No. 27 Thn 2020 (Sampah Spesifik)</div>
+                        <div class="list-item">6. Perpres No. 97 Thn 2017 (Jakstranas)</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 3: PERMASALAHAN -->
+        <section class="slide-section">
+            <div class="ornament-wrapper">
+                <i class="fas fa-exclamation-triangle hero-icon ani-pulse" style="color: var(--danger);"></i>
+            </div>
+            <div class="glass-card">
+                <h2 class="text-danger reveal"><i class="fas fa-search"></i>Permasalahan</h2>
+                <div class="row g-4">
+                    <div class="col-md-6 reveal">
+                        <h4 class="fw-bold text-danger mb-3" style="font-size: 1.6rem;">Masalah Makro</h4>
+                        <div class="list-item">Krisis sampah di Kab. Bandung Barat</div>
+                        <div class="list-item">Kapasitas TPA yang terbatas</div>
+                        <div class="list-item">Rendahnya budaya pilah sampah</div>
+                    </div>
+                    <div class="col-md-6 reveal">
+                        <h4 class="fw-bold text-warning mb-3" style="font-size: 1.6rem;">Masalah Mikro</h4>
+                        <div class="list-item">Pemahaman siswa yang rendah</div>
+                        <div class="list-item">Media edukasi konvensional</div>
+                        <div class="list-item">Sulit mengukur pemahaman nyata</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 4: ISU STRATEGIS -->
+        <section class="slide-section">
+            <div class="ornament-wrapper">
+                <i class="fas fa-globe-asia hero-icon ani-rotate" style="color: var(--ocean);"></i>
+            </div>
+            <div class="glass-card">
+                <h2 class="reveal"><i class="fas fa-bullseye"></i>Isu Strategis</h2>
+                <div class="row g-3 reveal">
+                    <div class="col-md-4">
+                        <div class="p-4 bg-white rounded-4 shadow-sm border-bottom border-5 border-primary h-100">
+                            <h5 class="fw-bold" style="font-size: 1.3rem;">Isu Global (SDGs)</h5>
+                            <p style="font-size: 1.1rem; font-weight: 500;">SDGs Tujuan 11, 12, dan 13: Kota Berkelanjutan & Konsumsi Bertanggung Jawab.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-4 bg-white rounded-4 shadow-sm border-bottom border-5 border-danger h-100">
+                            <h5 class="fw-bold" style="font-size: 1.3rem;">Isu Nasional</h5>
+                            <p style="font-size: 1.1rem; font-weight: 500;">Jakstranas: Pengurangan sampah 30% dan Penanganan 70%.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-4 bg-white rounded-4 shadow-sm border-bottom border-5 border-success h-100">
+                            <h5 class="fw-bold" style="font-size: 1.3rem;">Isu Daerah</h5>
+                            <p style="font-size: 1.1rem; font-weight: 500;">Darurat sampah KBB & Urgensi media edukasi digital generasi Z.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 5: METODE PEMBAHARUAN -->
+        <section class="slide-section">
+            <div class="ornament-wrapper">
+                <i class="fas fa-sync hero-icon ani-rotate" style="opacity: 0.3;"></i>
+            </div>
+            <div class="glass-card">
+                <h2 class="reveal"><i class="fas fa-arrows-rotate"></i>Metode Pembaharuan</h2>
+                <div class="row g-4 reveal">
+                    <div class="col-md-6">
+                        <div class="p-4 rounded-4 shadow-sm" style="background:#fff1f2; border: 1px solid #fecaca;">
+                            <h4 class="text-danger fw-bold">Sebelum Inovasi</h4>
+                            <div class="list-item">Ceramah & Seminar pasif</div>
+                            <div class="list-item">Brosur & Media cetak</div>
+                            <div class="list-item">Tanpa indikator pengukuran</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-4 rounded-4 shadow-sm" style="background:#f0fdf4; border: 1px solid #bbf7d0;">
+                            <h4 class="text-success fw-bold">Setelah Inovasi</h4>
+                            <div class="list-item">Game Edukasi berbasis Web</div>
+                            <div class="list-item">Drag & Drop Interaktif</div>
+                            <div class="list-item">Skor sebagai Alat Evaluasi</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 6: KEUNGGULAN -->
+        <section class="slide-section">
+            <div class="ornament-wrapper">
+                <i class="fas fa-star hero-icon ani-pulse" style="color: var(--warning);"></i>
+            </div>
+            <div class="glass-card">
+                <h2 class="mb-4 text-warning reveal"><i class="fas fa-award"></i>Keunggulan & Kebaharuan</h2>
+                <div class="row g-4 reveal">
+                    <div class="col-md-6">
+                        <h4 class="fw-bold text-primary mb-3" style="font-size: 1.6rem;">Keunggulan</h4>
+                        <div class="list-item">✅ Web-based, tanpa instalasi</div>
+                        <div class="list-item">✅ Multiplatform (Smartphone/Laptop)</div>
+                        <div class="list-item">✅ Ringan dan hemat kuota</div>
+                    </div>
+                    <div class="col-md-6">
+                        <h4 class="fw-bold text-success mb-3" style="font-size: 1.6rem;">Kebaharuan</h4>
+                        <div class="list-item">✨ Permainan interaktif edukasi</div>
+                        <div class="list-item">✨ Mengubah belajar pasif ke aktif</div>
+                        <div class="list-item">✨ Pengalaman belajar menyenangkan</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 7: TAHAPAN -->
+        <section class="slide-section">
+            <div class="ornament-wrapper">
+                <i class="fas fa-tasks hero-icon" style="color: var(--ocean);"></i>
+            </div>
+            <div class="glass-card text-center">
+                <h2 class="reveal justify-content-center"><i class="fas fa-list-ol"></i>Tahapan Penggunaan</h2>
+                <div class="row g-3 mt-4 reveal">
+                    <div class="col-md-4"><div class="p-4 bg-white rounded-4 shadow-sm border-start border-5 border-success"><h5>1. Scan QR Code</h5></div></div>
+                    <div class="col-md-4"><div class="p-4 bg-white rounded-4 shadow-sm border-start border-5 border-success"><h5>2. Isi Identitas</h5></div></div>
+                    <div class="col-md-4"><div class="p-4 bg-white rounded-4 shadow-sm border-start border-5 border-success"><h5>3. Mulai Game</h5></div></div>
+                    <div class="col-md-6"><div class="p-4 bg-white rounded-4 shadow-sm border-start border-5 border-success"><h5>4. Drag & Drop Sampah</h5></div></div>
+                    <div class="col-md-6"><div class="p-4 bg-white rounded-4 shadow-sm border-start border-5 border-success"><h5>5. Lihat Skor & Evaluasi</h5></div></div>
+                </div>
+                <div class="mt-5 text-center reveal">
+                    <h5 class="fw-bold" style="font-size: 1.4rem;">Kategori: <span class="badge bg-success">Organik</span> <span class="badge bg-primary">Anorganik</span> <span class="badge bg-danger">B3</span></h5>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 8: SPESIFIKASI -->
+        <section class="slide-section">
+            <div class="ornament-wrapper">
+                <i class="fas fa-laptop-code hero-icon ani-rotate" style="color: var(--ocean);"></i>
+            </div>
+            <div class="glass-card">
+                <h2 class="reveal"><i class="fas fa-microchip"></i>Spesifikasi Produk</h2>
+                <div class="row g-4 text-center mt-3 reveal">
+                    <div class="col-md-4"><div class="p-5 bg-white shadow-sm rounded-5 border-top border-5 border-warning"><i class="fab fa-js fa-4x text-warning mb-3"></i><h4>Native JS</h4></div></div>
+                    <div class="col-md-4"><div class="p-5 bg-white shadow-sm rounded-5 border-top border-5 border-primary"><i class="fas fa-mobile-alt fa-4x text-primary mb-3"></i><h4>Responsive</h4></div></div>
+                    <div class="col-md-4"><div class="p-5 bg-white shadow-sm rounded-5 border-top border-5 border-success"><i class="fas fa-tachometer-alt fa-4x text-success mb-3"></i><h4>High Speed</h4></div></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 9: TUJUAN -->
+        <section class="slide-section">
+            <div class="ornament-wrapper">
+                <i class="fas fa-bullseye hero-icon ani-pulse" style="color: var(--danger);"></i>
+            </div>
+            <div class="glass-card">
+                <h2 class="text-danger reveal"><i class="fas fa-crosshairs"></i>Tujuan Inovasi</h2>
+                <div class="reveal">
+                    <div class="list-item">1. Meningkatkan pemahaman siswa tentang pemilahan sampah.</div>
+                    <div class="list-item">2. Menumbuhkan kesadaran menjaga lingkungan.</div>
+                    <div class="list-item">3. Membentuk karakter peduli lingkungan sejak dini.</div>
+                    <div class="list-item">4. Mendukung pengurangan volume sampah di Kab. Bandung Barat.</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 10: MANFAAT -->
+        <section class="slide-section">
+            <div class="ornament-wrapper">
+                <i class="fas fa-heart hero-icon ani-pulse" style="color: var(--danger);"></i>
+            </div>
+            <div class="glass-card">
+                <h2 class="reveal"><i class="fas fa-hand-holding-heart"></i>Manfaat Inovasi</h2>
+                <div class="row g-3 reveal">
+                    <div class="col-md-4"><div class="p-4 rounded-5 shadow-sm h-100" style="background:#e0f2fe; border: 1px solid #bae6fd;"><h4>Bagi Siswa</h4><p style="font-size: 1.1rem; font-weight: 500;">Belajar seru, literasi ekologi praktis, melatih motorik pilah sampah.</p></div></div>
+                    <div class="col-md-4"><div class="p-4 rounded-5 shadow-sm h-100" style="background:#dcfce7; border: 1px solid #bbf7d0;"><h4>Bagi Sekolah</h4><p style="font-size: 1.1rem; font-weight: 500;">Dukung program Adiwiyata & mewujudkan lingkungan sekolah bersih.</p></div></div>
+                    <div class="col-md-4"><div class="p-4 rounded-5 shadow-sm h-100" style="background:#fef3c7; border: 1px solid #fde68a;"><h4>Bagi Daerah</h4><p style="font-size: 1.1rem; font-weight: 500;">Reduksi beban TPA & meningkatkan kesadaran masyarakat sejak usia sekolah.</p></div></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 11: HASIL -->
+        <section class="slide-section">
+            <div class="ornament-wrapper">
+                <i class="fas fa-chart-line hero-icon" style="color: var(--forest);"></i>
+            </div>
+            <div class="glass-card">
+                <h2 class="reveal"><i class="fas fa-square-poll-vertical"></i>Hasil Inovasi</h2>
+                <div class="row g-4 reveal">
+                    <div class="col-md-6">
+                        <h4 class="fw-bold border-bottom pb-3 mb-3" style="font-size: 1.6rem;">Output</h4>
+                        <div class="list-item">● Produk Game Web "Sort The Trash"</div>
+                        <div class="list-item">● Sistem penilaian skor otomatis</div>
+                        <div class="list-item">● Data hasil permainan & kuesioner</div>
+                    </div>
+                    <div class="col-md-6">
+                        <h4 class="fw-bold border-bottom pb-3 mb-3" style="font-size: 1.6rem;">Outcome</h4>
+                        <div class="list-item">● Pemahaman siswa meningkat drastis</div>
+                        <div class="list-item">● Perilaku peduli lingkungan terbentuk</div>
+                        <div class="list-item">● Terciptanya budaya memilah di sekolah</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+      <!-- SLIDE 12.5: DOKUMENTASI -->
+<section class="slide-section">
+    <div class="w-100 h-100 d-flex flex-column align-items-center pt-5">
+        
+        <h1 class="reveal text-center mb-5" style="color: var(--forest); font-size: 5rem; font-weight: 800; border-bottom: 5px solid var(--forest); padding-bottom: 15px;">
+            DOKUMENTASI
+        </h1>
+        
+        <div class="container px-5 reveal">
+            <div class="row row-cols-md-3 g-5">
+                <!-- Foto 1 -->
+                <div class="col">
+                    <div class="doc-placeholder" style="height: 250px; background: #e2e8f0; border-radius: 20px; overflow: hidden; border: 4px dashed var(--forest); transform: rotate(-2deg); transition: 0.3s;">
+                        <img src="Deas01.jpg" style="width: 100%; height: 100%; object-fit: cover;" alt="Kegiatan 1">
+                    </div>
+                </div>
+                <!-- Foto 2 -->
+                <div class="col">
+                    <div class="doc-placeholder" style="height: 250px; background: #e2e8f0; border-radius: 20px; overflow: hidden; border: 4px dashed var(--forest); transform: rotate(1deg); transition: 0.3s;">
+                        <img src="gambar2.jpg" style="width: 100%; height: 100%; object-fit: cover;" alt="Kegiatan 2">
+                    </div>
+                </div>
+                <!-- Foto 3 -->
+                <div class="col">
+                    <div class="doc-placeholder" style="height: 250px; background: #e2e8f0; border-radius: 20px; overflow: hidden; border: 4px dashed var(--forest); transform: rotate(-1.5deg); transition: 0.3s;">
+                        <img src="gambar3.jpg" style="width: 100%; height: 100%; object-fit: cover;" alt="Kegiatan 3">
+                    </div>
+                </div>
+                <!-- Foto 4 -->
+                <div class="col">
+                    <div class="doc-placeholder" style="height: 250px; background: #e2e8f0; border-radius: 20px; overflow: hidden; border: 4px dashed var(--forest); transform: rotate(2deg); transition: 0.3s;">
+                        <img src="gambar4.jpg" style="width: 100%; height: 100%; object-fit: cover;" alt="Kegiatan 4">
+                    </div>
+                </div>
+                <!-- Foto 5 -->
+                <div class="col">
+                    <div class="doc-placeholder" style="height: 250px; background: #e2e8f0; border-radius: 20px; overflow: hidden; border: 4px dashed var(--forest); transform: rotate(-1deg); transition: 0.3s;">
+                        <img src="gambar5.jpg" style="width: 100%; height: 100%; object-fit: cover;" alt="Kegiatan 5">
+                    </div>
+                </div>
+                <!-- Foto 6 -->
+                <div class="col">
+                    <div class="doc-placeholder" style="height: 250px; background: #e2e8f0; border-radius: 20px; overflow: hidden; border: 4px dashed var(--forest); transform: rotate(1.5deg); transition: 0.3s;">
+                        <img src="gambar6.jpg" style="width: 100%; height: 100%; object-fit: cover;" alt="Kegiatan 6">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <p class="reveal mt-5 fs-4 fw-bold text-muted">Aksi Nyata Tim DAKARA dalam Edukasi Lingkungan</p>
+    </div>
+</section>
+
+        <!-- SLIDE 12: KEBERLANJUTAN -->
+        <section class="slide-section">
+            <div class="ornament-wrapper">
+                <i class="fas fa-route hero-icon" style="color: var(--warning);"></i>
+            </div>
+            <div class="glass-card">
+                <h2 class="reveal"><i class="fas fa-map-location-dot"></i>Keberlanjutan Inovasi</h2>
+                <div class="row g-4 reveal">
+                    <div class="col-md-4"><div class="p-4 border-top border-5 border-primary bg-white shadow-sm rounded-4"><h4>Jangka Pendek</h4><p style="font-size: 1.1rem; font-weight: 500;">Evaluasi fitur & pengumpulan umpan balik pengguna.</p></div></div>
+                    <div class="col-md-4"><div class="p-4 border-top border-5 border-success bg-white shadow-sm rounded-4"><h4>Jangka Menengah</h4><p style="font-size: 1.1rem; font-weight: 500;">Implementasi ke sekolah lain di KBB & penambahan materi.</p></div></div>
+                    <div class="col-md-4"><div class="p-4 border-top border-5 border-warning bg-white shadow-sm rounded-4"><h4>Jangka Panjang</h4><p style="font-size: 1.1rem; font-weight: 500;">Media edukasi tingkat daerah hingga replikasi Nasional.</p></div></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 13: PENUTUP -->
+        <section class="slide-section text-center">
+            <div class="ornament-wrapper">
+                <i class="fas fa-recycle hero-icon ani-rotate" style="color: var(--forest);"></i>
+            </div>
+            <div class="glass-card">
+                <i class="fas fa-recycle fa-5x text-forest mb-4 reveal"></i>
+                <h1 class="mb-5 reveal" style="font-size: 3.5rem;">"Belajar Memilah Sampah Menjadi Lebih Menyenangkan Bersama Sort The Trash"</h1>
+                <h2 class="text-forest fw-bold reveal justify-content-center">Terima Kasih - Tim DAKARA</h2>
+                <button class="btn btn-success btn-lg px-5 rounded-pill mt-5 py-3 reveal" onclick="goTo(0)" style="font-weight: 800; font-size: 1.4rem;">Ke Awal <i class="fas fa-home ms-2"></i></button>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        const slider = document.getElementById('slider');
+        const sections = document.querySelectorAll('.slide-section');
+        const dotNav = document.getElementById('dotNav');
+        const bg = document.getElementById('interactive-bg');
+
+        // 1. GENERATE SMALL FLOATING TRASH
+        const icons = ['fa-apple-whole', 'fa-bottle-water', 'fa-leaf', 'fa-battery-empty', 'fa-box'];
+        for (let i = 0; i < 30; i++) {
+            const item = document.createElement('i');
+            item.className = `fas ${icons[Math.floor(Math.random() * icons.length)]} small-trash`;
+            item.style.fontSize = Math.random() * 25 + 10 + 'px';
+            item.style.left = Math.random() * 100 + '%';
+            item.style.top = Math.random() * 100 + '%';
+            item.style.color = '#16a34a';
+            bg.appendChild(item);
+        }
+
+        // 2. MOUSE PARALLAX
+        document.addEventListener('mousemove', (e) => {
+            const items = document.querySelectorAll('.small-trash');
+            const x = (window.innerWidth / 2 - e.pageX) / 25;
+            const y = (window.innerHeight / 2 - e.pageY) / 25;
+            items.forEach(item => item.style.transform = `translate(${x}px, ${y}px)`);
+        });
+
+        // 3. NAV DOTS
+        sections.forEach((_, i) => {
+            const dot = document.createElement('div');
+            dot.className = `dot ${i === 0 ? 'active' : ''}`;
+            dot.onclick = () => goTo(i);
+            dotNav.appendChild(dot);
+        });
+
+        const dots = document.querySelectorAll('.dot');
+
+        slider.addEventListener('scroll', () => {
+            const scrollLeft = slider.scrollLeft;
+            const index = Math.round(scrollLeft / window.innerWidth);
+            dots.forEach((dot, i) => dot.classList.toggle('active', i === index));
+            sections.forEach((sec, i) => {
+                if (i === index) sec.classList.add('active');
+                else sec.classList.remove('active');
+            });
+        });
+
+        function slide(dir) { slider.scrollBy({ left: window.innerWidth * dir, behavior: 'smooth' }); }
+        function goTo(idx) { slider.scrollTo({ left: window.innerWidth * idx, behavior: 'smooth' }); }
+        window.onload = () => sections[0].classList.add('active');
+    </script>
+</body>
+</html>
